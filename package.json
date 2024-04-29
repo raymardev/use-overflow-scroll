@@ -1,7 +1,8 @@
 {
 	"name": "use-overflow-scroll",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "A custom React hook for overflow scrolling with drag capabilities.",
+	"repository": "https://github.com/raymardev/use-overflow-scroll",
 	"main": "dist/hooks/useOverflowScroll.js",
 	"types": "dist/hooks/useOverflowScroll.d.ts",
 	"scripts": {
