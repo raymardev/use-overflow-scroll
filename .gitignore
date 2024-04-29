@@ -38,3 +38,5 @@ next-env.d.ts
 # VSCodeCounter
 /.VSCodeCounter/
 
+# yarn
+package-lock.json
