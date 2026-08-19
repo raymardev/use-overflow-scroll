@@ -1,5 +1,10 @@
 import { render, fireEvent, cleanup } from "@testing-library/react";
-import { OverflowedComponent } from "./mocks/OverflowedComponent";
+import { createRef } from "react";
+import {
+	LateMountedComponent,
+	ListComponent,
+	OverflowedComponent,
+} from "./mocks/OverflowedComponent";
 import { resizeObservers } from "../../jest.setup";
 
 /**
@@ -316,7 +321,24 @@ describe("useOverflowScroll · cambios de tamaño y casos límite", () => {
 		).not.toThrow();
 	});
 
-	it("E3 · no deja listeners de puntero vivos tras desmontar", () => {
+	it("E3 · un contenedor montado en un render posterior sí se engancha", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(<LateMountedComponent />);
+
+		fireEvent.click(getByTestId("show"));
+		const el = getByTestId("overflowed-div");
+
+		// El callback ref sigue al nodo; con el useEffect+[] de la 1.x esto fallaba.
+		expect(el.dataset.overflowing).toBe("true");
+
+		el.scrollLeft = 100;
+		down(el, 100, 100);
+		move(el, 80, 100);
+		move(el, 60, 100);
+		expect(el.scrollLeft).toBe(120);
+	});
+
+	it("E4 · no deja listeners de puntero vivos tras desmontar", () => {
 		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
 		const { getByTestId, unmount } = render(<OverflowedComponent />);
 		const el = getByTestId("overflowed-div");
@@ -327,5 +349,147 @@ describe("useOverflowScroll · cambios de tamaño y casos límite", () => {
 		const removedTypes = removed.mock.calls.map((call) => call[0]);
 		expect(removedTypes).toContain("pointerdown");
 		expect(removedTypes).toContain("click");
+	});
+});
+
+describe("useOverflowScroll · opciones", () => {
+	it("F1 · disabled impide el arrastre y no marca desbordamiento", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(<OverflowedComponent disabled />);
+		const el = getByTestId("overflowed-div");
+
+		expect(el.dataset.overflowing).toBe("false");
+		el.scrollLeft = 100;
+		down(el, 100, 100);
+		move(el, 40, 60);
+		expect(el.scrollLeft).toBe(100);
+	});
+
+	it("F2 · axis limita el eje que se desplaza", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(<OverflowedComponent axis="x" />);
+		const el = getByTestId("overflowed-div");
+
+		el.scrollLeft = 100;
+		el.scrollTop = 100;
+		down(el, 100, 100);
+		move(el, 80, 80);
+		move(el, 60, 60);
+
+		expect(el.scrollLeft).toBe(120);
+		expect(el.scrollTop).toBe(100);
+		// Con axis "x" el overflow se escribe solo en ese eje.
+		expect(el.style.getPropertyValue("overflow-x")).toBe("auto");
+		expect(el.style.getPropertyValue("overflow")).toBe("");
+	});
+
+	it("F3 · multiplier escala el desplazamiento", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(<OverflowedComponent multiplier={2} />);
+		const el = getByTestId("overflowed-div");
+
+		el.scrollLeft = 100;
+		down(el, 100, 100);
+		move(el, 80, 100);
+		move(el, 60, 100);
+
+		expect(el.scrollLeft).toBe(140); // 20px de puntero -> 40px de scroll
+	});
+
+	it("F4 · dragThreshold desplaza el punto de activación", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(<OverflowedComponent dragThreshold={40} />);
+		const el = getByTestId("overflowed-div");
+
+		down(el, 100, 100);
+		move(el, 80, 100); // 20px: por debajo de 40
+		expect(el.dataset.dragging).toBeUndefined();
+
+		move(el, 40, 100); // 60px: lo supera
+		expect(el.dataset.dragging).toBe("true");
+	});
+
+	it("F5 · manageOverflow y manageCursor en false no tocan el estilo", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(
+			<OverflowedComponent manageOverflow={false} manageCursor={false} />
+		);
+		const el = getByTestId("overflowed-div");
+
+		expect(el.style.overflow).toBe("");
+		expect(el.style.cursor).toBe("");
+		// Pero el arrastre sigue activo y el estado sigue expuesto para el CSS.
+		expect(el.dataset.overflowing).toBe("true");
+		el.scrollLeft = 100;
+		down(el, 100, 100);
+		move(el, 80, 100);
+		move(el, 60, 100);
+		expect(el.scrollLeft).toBe(120);
+	});
+
+	it("F6 · ignoreSelector personalizado sustituye al de por defecto", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId } = render(
+			<OverflowedComponent ignoreSelector="[data-testid='child-text']" />
+		);
+		const el = getByTestId("overflowed-div");
+
+		// El texto pasa a estar excluido...
+		el.scrollLeft = 100;
+		down(getByTestId("child-text"), 100, 100);
+		move(el, 60, 100);
+		expect(el.scrollLeft).toBe(100);
+
+		// ...y el input, que ya no lo está, sí arrastra.
+		down(getByTestId("child-input"), 100, 100);
+		move(el, 80, 100);
+		move(el, 60, 100);
+		expect(el.scrollLeft).toBe(120);
+	});
+
+	it("F7 · onDragStart y onDragEnd solo se disparan en arrastres reales", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const onDragStart = jest.fn();
+		const onDragEnd = jest.fn();
+		const { getByTestId } = render(
+			<OverflowedComponent onDragStart={onDragStart} onDragEnd={onDragEnd} />
+		);
+		const el = getByTestId("overflowed-div");
+
+		// Gesto por debajo del umbral: no cuenta.
+		down(el, 100, 100);
+		move(el, 98, 100);
+		up(el, 98, 100);
+		expect(onDragStart).not.toHaveBeenCalled();
+		expect(onDragEnd).not.toHaveBeenCalled();
+
+		down(el, 100, 100);
+		move(el, 60, 100);
+		up(el, 60, 100);
+		expect(onDragStart).toHaveBeenCalledTimes(1);
+		expect(onDragEnd).toHaveBeenCalledTimes(1);
+	});
+
+	it("F8 · acepta una ref externa y un elemento que no es div", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const externalRef = createRef<HTMLUListElement>() as React.MutableRefObject<HTMLUListElement | null>;
+		const { getByTestId } = render(<ListComponent externalRef={externalRef} />);
+		const el = getByTestId("list");
+
+		expect(externalRef.current).toBe(el);
+		expect(el.dataset.overflowing).toBe("true");
+	});
+
+	it("F9 · cambiar disabled en caliente re-mide sin reinstalar", () => {
+		fakeSize(OVERFLOWING.client, OVERFLOWING.scroll);
+		const { getByTestId, rerender } = render(<OverflowedComponent />);
+		const el = getByTestId("overflowed-div");
+		expect(el.dataset.overflowing).toBe("true");
+
+		rerender(<OverflowedComponent disabled />);
+		expect(el.dataset.overflowing).toBe("false");
+
+		rerender(<OverflowedComponent />);
+		expect(el.dataset.overflowing).toBe("true");
 	});
 });

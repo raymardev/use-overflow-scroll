@@ -1,12 +1,14 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"outDir": "dist",
 		"rootDir": "src",
-		"declaration": true,
+		"outDir": "dist/esm",
 		"module": "ESNext",
-		"target": "es5",
+		"target": "ES2018",
 		"lib": ["dom", "esnext"],
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
 		"types": [],
 		"skipLibCheck": true,
 		"strict": true,

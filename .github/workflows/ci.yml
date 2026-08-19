@@ -27,12 +27,35 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Verificar el contenido del paquete
+      - run: npm run check:pkg
+
+  package:
+    runs-on: ubuntu-latest
+    name: package contract
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Verificar el contenido del tarball
         run: |
           npm pack --silent
           echo "--- contenido ---"
           tar tzf use-overflow-scroll-*.tgz
-          # dist/ es obligatorio: su ausencia fue lo que rompio la 1.0.1.
-          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/hooks/useOverflowScroll.js'
-          # Nada de fuentes ni tests en el tarball.
-          ! tar tzf use-overflow-scroll-*.tgz | grep -qE 'package/(src|dist/__tests__)/'
+          # Ambas salidas son obligatorias: la ausencia de dist/ rompio la 1.0.1.
+          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/esm/index.js'
+          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/cjs/index.js'
+          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/esm/index.d.ts'
+          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/cjs/index.d.ts'
+          # Los tests nunca deben publicarse.
+          ! tar tzf use-overflow-scroll-*.tgz | grep -q '__tests__'
+      - name: Comprobar que import y require resuelven de verdad
+        run: |
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          echo '{"name":"c","private":true,"version":"1.0.0"}' > package.json
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/use-overflow-scroll-*.tgz react@18 react-dom@18
+          node -e "const m=require('use-overflow-scroll'); if (typeof m.default!=='function') throw new Error('CJS default no invocable')"
+          node --input-type=module -e "import h from 'use-overflow-scroll'; if (typeof h!=='function') throw new Error('ESM default no invocable')"
