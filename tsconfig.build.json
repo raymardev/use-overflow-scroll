@@ -2,12 +2,21 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"outDir": "dist",
+		"rootDir": "src",
 		"declaration": true,
 		"module": "ESNext",
 		"target": "es5",
 		"lib": ["dom", "esnext"],
-		"skipLibCheck": true
+		"types": [],
+		"skipLibCheck": true,
+		"strict": true,
+		"noEmitOnError": true
 	},
 	"include": ["src/**/*"],
-	"exclude": ["node_modules", "src/**/*.test.ts"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"src/**/__tests__/**",
+		"src/**/*.test.*"
+	]
 }

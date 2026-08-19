@@ -1,5 +1,11 @@
 import { useRef, useEffect } from "react";
-import { UseOverflowScroll } from "../types/useOverflowScroll";
+import type { RefObject } from "react";
+
+/**
+ * Ref que devuelve `useOverflowScroll`. Asígnalo al elemento scrollable.
+ * `current` es nulable: es `null` antes del montaje y tras el desmontaje.
+ */
+export type UseOverflowScroll = RefObject<HTMLDivElement>;
 
 export default function useOverflowScroll(): UseOverflowScroll {
 	const ref = useRef<HTMLDivElement>(null);
@@ -13,7 +19,6 @@ export default function useOverflowScroll(): UseOverflowScroll {
 		div.scrollLeft -= event.movementX;
 		div.scrollTop -= event.movementY;
 	}
-	asd;
 
 	function handleMouseUp() {
 		const div = ref.current;
