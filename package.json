@@ -1,33 +1,38 @@
 {
 	"name": "use-overflow-scroll",
-	"version": "1.0.2",
-	"description": "A custom React hook for overflow scrolling with drag capabilities.",
+	"version": "1.1.0",
+	"description": "React hook for drag-to-scroll that activates itself only when the container actually overflows.",
 	"repository": "https://github.com/raymardev/use-overflow-scroll",
 	"main": "dist/hooks/useOverflowScroll.js",
 	"types": "dist/hooks/useOverflowScroll.d.ts",
 	"scripts": {
 		"clean": "rimraf dist",
-		"build": "npm run clean && tsc -p tsconfig.build.json",
+		"lint": "eslint .",
 		"typecheck": "tsc -p tsconfig.build.json --noEmit",
 		"test": "jest",
-		"prepublishOnly": "npm run typecheck && npm test && npm run build"
+		"build": "npm run clean && tsc -p tsconfig.build.json",
+		"prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
 	},
 	"peerDependencies": {
-		"react": "^17.0.0 || ^18.0.0"
+		"react": "^17.0.0 || ^18.0.0 || ^19.0.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.0.0",
 		"@babel/preset-env": "^7.0.0",
 		"@babel/preset-react": "^7.0.0",
 		"@babel/preset-typescript": "^7.0.0",
+		"@eslint/js": "^9.12.0",
 		"@testing-library/jest-dom": "^6.4.2",
 		"@testing-library/react": "^15.0.5",
 		"@types/jest": "^29.5.12",
+		"eslint": "^9.12.0",
+		"eslint-plugin-react-hooks": "^5.0.0",
 		"jest": "^29.7.0",
 		"jest-environment-jsdom": "^29.7.0",
 		"rimraf": "^5.0.0",
 		"ts-jest": "^29.1.2",
-		"typescript": "~5.6.0"
+		"typescript": "~5.6.0",
+		"typescript-eslint": "^8.8.0"
 	},
 	"keywords": [
 		"react",

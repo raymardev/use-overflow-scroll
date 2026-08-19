@@ -38,8 +38,8 @@ next-env.d.ts
 # VSCodeCounter
 /.VSCodeCounter/
 
-# yarn
-package-lock.json
+# NOTA: package-lock.json se versiona a proposito. En una libreria publicada
+# fija el arbol de dependencias con el que corren CI y `npm ci`.
 
 # build output
 /dist

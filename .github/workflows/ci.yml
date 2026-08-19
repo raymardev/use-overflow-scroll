@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react: ["17", "18", "19"]
+    name: react ${{ matrix.react }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install React ${{ matrix.react }}
+        if: matrix.react != '18'
+        run: npm install --no-save react@${{ matrix.react }} react-dom@${{ matrix.react }} @types/react@${{ matrix.react }}
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Verificar el contenido del paquete
+        run: |
+          npm pack --silent
+          echo "--- contenido ---"
+          tar tzf use-overflow-scroll-*.tgz
+          # dist/ es obligatorio: su ausencia fue lo que rompio la 1.0.1.
+          tar tzf use-overflow-scroll-*.tgz | grep -q 'package/dist/hooks/useOverflowScroll.js'
+          # Nada de fuentes ni tests en el tarball.
+          ! tar tzf use-overflow-scroll-*.tgz | grep -qE 'package/(src|dist/__tests__)/'
