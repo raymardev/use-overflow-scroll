@@ -6,28 +6,56 @@ on:
   pull_request:
 
 jobs:
-  verify:
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        react: ["17", "18", "19"]
-    name: react ${{ matrix.react }}
+        react: ["18", "19"]
+    name: test · react ${{ matrix.react }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install React ${{ matrix.react }}
+      # React 17 no aparece aquí a propósito: Testing Library monta con
+      # createRoot, que no existe en 17. La compatibilidad con 17 se cubre en el
+      # job `types`, que es lo que el rango de peerDependencies promete.
+      - name: Instalar React ${{ matrix.react }}
         if: matrix.react != '18'
-        run: npm install --no-save react@${{ matrix.react }} react-dom@${{ matrix.react }} @types/react@${{ matrix.react }}
+        run: |
+          npm install --no-save \
+            react@${{ matrix.react }} react-dom@${{ matrix.react }} \
+            @types/react@${{ matrix.react }} @types/react-dom@${{ matrix.react }}
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - run: npm run check:pkg
+
+  types:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        types: ["17", "18", "19"]
+    name: types · @types/react ${{ matrix.types }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Solo se cambian los tipos, no el runtime: los paquetes @types no
+      # declaran peers sobre react, así que no hay conflicto de resolución y se
+      # comprueba el rango completo de peerDependencies a nivel de compilación.
+      - name: Instalar @types/react ${{ matrix.types }}
+        run: npm install --no-save @types/react@${{ matrix.types }}
+      - run: npm run typecheck
+      - run: npm run build
 
   package:
     runs-on: ubuntu-latest
@@ -36,7 +64,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build

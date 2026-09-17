@@ -23,6 +23,10 @@ yarn add use-overflow-scroll
 React 17, 18 and 19 are supported as peer dependencies. The package ships both
 ESM and CommonJS builds with their own type declarations.
 
+CI runs the test suite against React 18 and 19, and typechecks against
+`@types/react` 17, 18 and 19. React 17 is not exercised at runtime because
+Testing Library mounts with `createRoot`, which React 17 does not have.
+
 ## Usage
 
 Call the hook and assign the returned `ref` to your scrollable element.
