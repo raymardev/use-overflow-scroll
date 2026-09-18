@@ -201,33 +201,20 @@ and `ResizeObserver` are polyfilled in `jest.setup.ts`.
 
 ## Releasing
 
-Publishing runs from CI through npm
-[trusted publishing](https://docs.npmjs.com/trusted-publishers/), so there is no
-npm token stored anywhere. One-time setup on npmjs.com:
-
-1. Open the package page → **Settings** → **Trusted Publisher**.
-2. Choose **GitHub Actions** and fill in:
-   - Organization or user: `raymardev`
-   - Repository: `use-overflow-scroll`
-   - Workflow filename: `release.yml`
-   - Environment: leave empty
-3. Select the allowed action — configurations created after 20 May 2026 require
-   at least one to be picked explicitly.
-
-After that, a release is a tag:
+Releases are published by hand from a clean checkout of `main`:
 
 ```bash
-npm version minor      # or patch / major — updates package.json and tags
+npm login                  # once per machine
+npm version minor          # or patch / major — updates package.json and tags
+npm publish --otp=<code>   # prepublishOnly runs lint, typecheck, tests, build and publint
 git push --follow-tags
 ```
 
-The `Release` workflow verifies the tag matches `package.json`, runs lint,
-typecheck, tests, build and publint, checks that `import` and `require` both
-resolve from the packed tarball, and then publishes. npm attaches a provenance
-attestation automatically.
+Then create the GitHub release for the new tag:
 
-To publish by hand instead, `npm publish` works locally once you are logged in —
-`prepublishOnly` runs the same gate.
+```bash
+gh release create v<version> --generate-notes
+```
 
 ## Contributing
 
